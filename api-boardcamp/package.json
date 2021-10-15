@@ -1,7 +1,6 @@
 {
   "name": "api-boardcamp",
   "version": "1.0.0",
-  "description": "",
   "type": "module",
   "main": "boardcampServer.js",
   "scripts": {
@@ -9,5 +8,11 @@
   },
   "keywords": [],
   "author": "",
-  "license": "ISC"
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "express": "^4.17.1",
+    "joi": "^17.4.2",
+    "pg": "^8.7.1"
+  }
 }
