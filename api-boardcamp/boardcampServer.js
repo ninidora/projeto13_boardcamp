@@ -10,8 +10,8 @@ const roleSettings = {
   database: 'boardcamp'
 };
 
-const queriesSchema = joi.object({
-  categoryName: joi.string().alphanum().required(),
+const categoriesSchema = joi.object({
+  name: joi.string().min(3).max(28).required(),
 })
 
 const { Pool } = pg;
@@ -30,16 +30,25 @@ app.get('/categories', async (req, res) => {
   }
 });
 
-/*
 app.post('/categories', async (req, res) => {
+  const categoryName = req.body;
+  const joiResult = categoriesSchema.validate(categoryName);
+  if (joiResult.error) {
+    console.log(joiResult.error.name,":",joiResult.error.message);
+    res.status(400).send('Nome da categoria deve conter de 03 a 28 caracteres');
+  }
+  else {
+    console.log('passed joi');
+    try {
+      const categoriesPromise = await connection.query('SELECT * FROM categories;');
+    } catch {
+      console.log('catch, error');
+    }
   
-  
+  }
+  res.status(501).send('request closed');
 
 });
-*/
-const testJoi = {categoryName: '' };
-queriesSchema.validate(testJoi).error ? console.log('erro') : console.log('passed');
-console.log('joi:', queriesSchema.validate(testJoi).error);
 
 
 
@@ -54,5 +63,4 @@ console.log('joi:', queriesSchema.validate(testJoi).error);
 
 
 
-
-app.listen(4000, () => { console.log('Server listening, :4000.') });
+app.listen(4000, () => { console.log('Server listening, :4000') });
