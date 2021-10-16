@@ -23,16 +23,15 @@ app.use(express.json());
 app.get('/categories', async (req, res) => {
   try {
   const categoriesPromise = await connection.query('SELECT * FROM categories;');
-  console.log(categoriesPromise);
   res.status(200).send(categoriesPromise.rows);
   } catch(error) {
-    console.log('ERRO!:', error);
+    console.log('erro na SELECT query', error);
   }
 });
 
 app.post('/categories', async (req, res) => {
-  const categoryName = req.body;
-  const joiResult = categoriesSchema.validate(categoryName);
+  const newCategoryName = req.body;
+  const joiResult = categoriesSchema.validate(newCategoryName);
   if (joiResult.error) {
     console.log(joiResult.error.name,":",joiResult.error.message);
     res.status(400).send('Nome da categoria deve conter de 03 a 28 caracteres');
@@ -41,16 +40,27 @@ app.post('/categories', async (req, res) => {
     console.log('passed joi');
     try {
       const categoriesPromise = await connection.query('SELECT * FROM categories;');
-    } catch {
-      console.log('catch, error');
-    }
-  
-  }
-  res.status(501).send('request closed');
+      const categoryNames = categoriesPromise.rows.map((element) => element.name);
 
+      if (categoryNames.includes(newCategoryName.name)) {
+        res.status(409).send(`categoria '${newCategoryName.name}' já existente`);
+      }
+      else {
+        try {
+          const newCategoryPromise = await connection.query(`INSERT INTO categories (name) VALUES ('${newCategoryName.name}');`);
+          res.sendStatus(201);
+          console.log('nova categoria cadastrada');
+        } catch(error) {
+          console.log('erro na INSERT query', error);
+        }
+      }
+    } catch(error) {
+      console.log('erro na SELECT query', error);
+    }
+  }
 });
 
-
+ 
 
 
 
