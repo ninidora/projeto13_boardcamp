@@ -60,10 +60,22 @@ app.post('/categories', async (req, res) => {
   }
 });
 
+app.get('/games', async (req, res) => {
+  try {
+    const gamesPromise = await connection.query(`
+      SELECT
+        games.*,
+        categories.name AS "categoryName"
+        FROM games
+        JOIN categories
+          ON games."categoryId" = categories.id;`);
+    console.log(gamesPromise);
+    res.status(200).send(gamesPromise.rows);
+  } catch(error) {
+    console.log('erro na SELECT query', error);
+  }
+});
  
-
-
-
 
 
 
