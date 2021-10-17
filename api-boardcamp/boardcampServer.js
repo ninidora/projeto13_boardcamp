@@ -12,7 +12,10 @@ const roleSettings = {
 
 const categoriesSchema = joi.object({
   name: joi.string().min(3).max(28).required(),
-})
+});
+const gamesSchema = joi.object({
+  name: joi.string().max(28).required(),
+});
 
 const { Pool } = pg;
 const connection = new Pool(roleSettings);
@@ -22,9 +25,9 @@ app.use(express.json());
 
 app.get('/categories', async (req, res) => {
   try {
-  const categoriesPromise = await connection.query('SELECT * FROM categories;');
-  res.status(200).send(categoriesPromise.rows);
-  } catch(error) {
+    const categoriesPromise = await connection.query('SELECT * FROM categories;');
+    res.status(200).send(categoriesPromise.rows);
+  } catch (error) {
     console.log('erro na SELECT query', error);
   }
 });
@@ -33,7 +36,7 @@ app.post('/categories', async (req, res) => {
   const newCategoryName = req.body;
   const joiResult = categoriesSchema.validate(newCategoryName);
   if (joiResult.error) {
-    console.log(joiResult.error.name,":",joiResult.error.message);
+    console.log(joiResult.error.name, ":", joiResult.error.message);
     res.status(400).send('Nome da categoria deve conter de 03 a 28 caracteres');
   }
   else {
@@ -47,35 +50,60 @@ app.post('/categories', async (req, res) => {
       }
       else {
         try {
-          const newCategoryPromise = await connection.query(`INSERT INTO categories (name) VALUES ('${newCategoryName.name}');`);
+          const newCategoryPromise = await connection.query(`INSERT INTO categories (name) VALUES ($1);`, [newCategoryName.name]);
           res.sendStatus(201);
           console.log('nova categoria cadastrada');
-        } catch(error) {
+        } catch (error) {
           console.log('erro na INSERT query', error);
         }
       }
-    } catch(error) {
+    } catch (error) {
       console.log('erro na SELECT query', error);
     }
   }
 });
 
 app.get('/games', async (req, res) => {
-  try {
-    const gamesPromise = await connection.query(`
-      SELECT
-        games.*,
-        categories.name AS "categoryName"
-        FROM games
-        JOIN categories
-          ON games."categoryId" = categories.id;`);
-    console.log(gamesPromise);
-    res.status(200).send(gamesPromise.rows);
-  } catch(error) {
-    console.log('erro na SELECT query', error);
+  const searchName = req.query;
+  console.log('>>>> :', searchName);
+  if (searchName == {}) {
+    try {
+      const gamesPromise = await connection.query(`
+        SELECT
+          games.*,
+          categories.name AS "categoryName"
+          FROM games
+          JOIN categories
+            ON games."categoryId" = categories.id;`);
+      //console.log(gamesPromise);
+      res.status(200).send(gamesPromise.rows);
+    } catch (error) {
+      console.log('erro na SELECT query', error);
+    }
   }
+  else {
+    const joiResult = gamesSchema.validate(searchName);
+    if (joiResult.error) {
+      console.log(joiResult.error.name, ":", joiResult.error.message);
+      res.status(400).send('CORRIGIR ESTA MSG DE ERRO');
+    }
+    try {
+      const searchPromise = await connection.query('SELECT COM BUSCA');
+
+    }
+
+
+  }
+
+
+
+
+
+  //SELECT * FROM games WHERE name LIKE $1;`,[entrada]);	
+
+
 });
- 
+
 
 
 
