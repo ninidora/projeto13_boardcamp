@@ -14,7 +14,7 @@ const categoriesSchema = joi.object({
   name: joi.string().min(3).max(28).required(),
 });
 const gamesSchema = joi.object({
-  name: joi.string().max(28).required(),
+  name: joi.string().max(28),
 });
 
 const { Pool } = pg;
@@ -64,53 +64,50 @@ app.post('/categories', async (req, res) => {
 });
 
 app.get('/games', async (req, res) => {
-  const searchName = req.query;
-  console.log('>>>> :', searchName);
-  if (searchName == {}) {
+  console.log('>>query :', req.query);
+
+
+  if (req.query.name === undefined) {
     try {
       const gamesPromise = await connection.query(`
-        SELECT
-          games.*,
-          categories.name AS "categoryName"
-          FROM games
-          JOIN categories
-            ON games."categoryId" = categories.id;`);
-      //console.log(gamesPromise);
+      SELECT
+        games.*,
+        categories.name AS "categoryName"
+      FROM games
+      JOIN categories
+        ON games."categoryId" = categories.id;`);
+      console.log(gamesPromise);
       res.status(200).send(gamesPromise.rows);
     } catch (error) {
       console.log('erro na SELECT query', error);
     }
   }
   else {
-    const joiResult = gamesSchema.validate(searchName);
+    const searchName = req.query.name + "%";
+    const joiResult = gamesSchema.validate( {name: searchName} );
     if (joiResult.error) {
       console.log(joiResult.error.name, ":", joiResult.error.message);
       res.status(400).send('CORRIGIR ESTA MSG DE ERRO');
     }
-    try {
-      const searchPromise = await connection.query('SELECT COM BUSCA');
-
+    else {
+      try {
+        const searchPromise = await connection.query(`
+        SELECT
+          games.*,
+          categories.name AS "categoryName"
+        FROM games
+        JOIN categories
+          ON games."categoryId" = categories.id
+        WHERE games.name iLIKE $1;`, [searchName]);
+        console.log(searchPromise);
+        res.status(200).send(searchPromise.rows);
+      }
+      catch (error) {
+        console.log('erro na SELECT pesquisa', error);
+        res.status(400).send(' - - -');
+      }
     }
-
-
   }
-
-
-
-
-
-  //SELECT * FROM games WHERE name LIKE $1;`,[entrada]);	
-
-
 });
-
-
-
-
-
-
-
-
-
 
 app.listen(4000, () => { console.log('Server listening, :4000') });
