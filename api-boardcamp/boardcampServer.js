@@ -20,6 +20,12 @@ const gamesSchema = joi.object({
   categoryId: joi.number().integer(),
   pricePerDay: joi.number().integer().min(1),
 });
+const cpfSchema = joi.object({
+  //name: joi.string().max(48).required(),
+  //phone: joi.string().alphanum().max(23).required(),
+  cpf: joi.string().alphanum().min(11).max(11).required(),
+  //birthday: joi.string().max(10).required(),
+});
 
 const { Pool } = pg;
 const connection = new Pool(roleSettings);
@@ -57,13 +63,9 @@ app.post('/categories', async (req, res) => {
           const newCategoryPromise = await connection.query(`INSERT INTO categories (name) VALUES ($1);`, [newCategoryName.name]);
           res.sendStatus(201);
           console.log('nova categoria cadastrada');
-        } catch (error) {
-          console.log('erro na INSERT query', error);
-        }
+        } catch (error) {console.log(error);}
       }
-    } catch (error) {
-      console.log('erro na SELECT query', error);
-    }
+    } catch (error) {console.log(error);}
   }
 });
 
@@ -106,8 +108,7 @@ app.get('/games', async (req, res) => {
         res.status(200).send(searchPromise.rows);
       }
       catch (error) {
-        console.log('erro na SELECT pesquisa', error);
-      }
+        console.log(error);}
     }
   }
 });
@@ -145,20 +146,64 @@ app.post('/games', async (req, res) => {
                 VALUES ($1, $2, $3, $4, $5);`, [newGame.name, newGame.image, newGame.stockTotal, newGame.categoryId, newGame.pricePerDay]);
               res.status(201).send('novo jogo cadastrado');
             }
-            catch (error) {
-              console.log(error);
-            }
+            catch (error) {console.log(error);}
           }
         }
-        catch (error) {
-          console.log(error);
-        }
+        catch (error) {console.log(error);}
       }
     }
-    catch (error) {
-      console.log(error);
-    }
+    catch (error) {console.log(error);}
   }
 });
+
+
+app.get('/customers', async (req, res) => {
+  console.log('>>query :', req.query);
+  
+  if (req.query.cpf === undefined) {
+    try {
+      const customersPromise = await connection.query('SELECT * FROM customers;');
+      console.log(customersPromise.rows);
+      customersPromise.rows = customersPromise.rows.map(customer => ({
+        ...customer,
+        birthday: new Date(customer.birthday).toLocaleDateString('pt-Br')}));
+      res.status(200).send(customersPromise.rows);
+    } catch (error) {console.log(error);}
+  }
+  else {
+    console.log(req.query.cpf);
+    const searchCPF = req.query.cpf + "%";
+    try {
+      const searchCPFPromise = await connection.query(`
+        SELECT * FROM customers WHERE customers.cpf iLIKE $1;`, [searchCPF]);
+        console.log(searchCPFPromise.rows);
+        searchCPFPromise.rows = searchCPFPromise.rows.map(customer => ({
+          ...customer,
+          birthday: new Date(customer.birthday).toLocaleDateString('pt-Br')}));
+        res.status(200).send(searchCPFPromise.rows);
+    }
+    catch (error) {console.log(error);}
+    }
+});
+
+app.get('/customers/:id', async (req, res) => {
+  const searchID = Number(req.params.id);
+  try {
+    const searchIDPromise = await connection.query(`
+      SELECT * FROM customers WHERE id=$1;`, [searchID]);
+    if (searchIDPromise.rows.length < 1) {
+      res.status(404).send('id de cliente não existe');
+    }
+    else {
+      searchIDPromise.rows = searchIDPromise.rows.map(customer => ({
+        ...customer,
+        birthday: new Date(customer.birthday).toLocaleDateString('pt-Br')}));
+      res.status(200).send(searchIDPromise.rows);
+    }
+  }
+  catch(error) {console.log(error);}
+});
+
+
 
 app.listen(4000, () => { console.log('Server listening, :4000') });
