@@ -15,6 +15,10 @@ const categoriesSchema = joi.object({
 });
 const gamesSchema = joi.object({
   name: joi.string().max(28),
+  image: joi.string().max(255),
+  stockTotal: joi.number().integer().min(1),
+  categoryId: joi.number().integer(),
+  pricePerDay: joi.number().integer().min(1),
 });
 
 const { Pool } = pg;
@@ -63,10 +67,9 @@ app.post('/categories', async (req, res) => {
   }
 });
 
+
 app.get('/games', async (req, res) => {
   console.log('>>query :', req.query);
-
-
   if (req.query.name === undefined) {
     try {
       const gamesPromise = await connection.query(`
@@ -84,7 +87,7 @@ app.get('/games', async (req, res) => {
   }
   else {
     const searchName = req.query.name + "%";
-    const joiResult = gamesSchema.validate( {name: searchName} );
+    const joiResult = gamesSchema.validate({ name: searchName });
     if (joiResult.error) {
       console.log(joiResult.error.name, ":", joiResult.error.message);
       res.status(400).send('CORRIGIR ESTA MSG DE ERRO');
@@ -104,8 +107,56 @@ app.get('/games', async (req, res) => {
       }
       catch (error) {
         console.log('erro na SELECT pesquisa', error);
-        res.status(400).send(' - - -');
       }
+    }
+  }
+});
+
+app.post('/games', async (req, res) => {
+  const newGame = req.body;
+  console.log(newGame);
+  const joiResult = gamesSchema.validate(newGame);
+  if (joiResult.error) {
+    console.log(joiResult.error.name, ":", joiResult.error.message);
+    res.sendStatus(400);
+  }
+  else {
+    console.log('passed joi');
+    try {
+      const categoriesPromise = await connection.query('SELECT * FROM categories;');
+      const categoryIDs = categoriesPromise.rows.map((element) => element.id);
+      console.log(categoryIDs);
+      if (!categoryIDs.includes(newGame.categoryId)) {
+        res.status(400).send(`esta categoria não existe no sistema`);
+      }
+      else {
+        try {
+          const gamesPromise = await connection.query('SELECT * FROM games;');
+          const gameNames = gamesPromise.rows.map((element) => element.name);
+          console.log(gameNames);
+          if (gameNames.includes(newGame.name)) {
+            res.status(409).send('já existe jogo cadastrado com este nome');
+          }
+          else {
+            try {
+              const newGamePromise = await connection.query(`
+              INSERT INTO games
+                (name, image, "stockTotal", "categoryId", "pricePerDay")
+                VALUES ($1, $2, $3, $4, $5);`, [newGame.name, newGame.image, newGame.stockTotal, newGame.categoryId, newGame.pricePerDay]);
+              res.status(201).send('novo jogo cadastrado');
+            }
+            catch (error) {
+              console.log(error);
+            }
+          }
+        }
+        catch (error) {
+          console.log(error);
+        }
+      }
+    }
+    catch (error) {
+      console.log(error);
     }
   }
 });
