@@ -21,10 +21,10 @@ const gamesSchema = joi.object({
   pricePerDay: joi.number().integer().min(1),
 });
 const cpfSchema = joi.object({
-  //name: joi.string().max(48).required(),
-  //phone: joi.string().alphanum().max(23).required(),
-  cpf: joi.string().alphanum().min(11).max(11).required(),
-  //birthday: joi.string().max(10).required(),
+  name: joi.string().max(48).required(),
+  phone: joi.string().alphanum().min(10).max(23),
+  cpf: joi.string().pattern(/[0-9]{11}/).required(),
+  birthday: joi.string().max(10),
 });
 
 const { Pool } = pg;
@@ -38,7 +38,7 @@ app.get('/categories', async (req, res) => {
     const categoriesPromise = await connection.query('SELECT * FROM categories;');
     res.status(200).send(categoriesPromise.rows);
   } catch (error) {
-    console.log('erro na SELECT query', error);
+    console.log(error);
   }
 });
 
@@ -50,7 +50,6 @@ app.post('/categories', async (req, res) => {
     res.status(400).send('Nome da categoria deve conter de 03 a 28 caracteres');
   }
   else {
-    console.log('passed joi');
     try {
       const categoriesPromise = await connection.query('SELECT * FROM categories;');
       const categoryNames = categoriesPromise.rows.map((element) => element.name);
@@ -62,7 +61,6 @@ app.post('/categories', async (req, res) => {
         try {
           const newCategoryPromise = await connection.query(`INSERT INTO categories (name) VALUES ($1);`, [newCategoryName.name]);
           res.sendStatus(201);
-          console.log('nova categoria cadastrada');
         } catch (error) {console.log(error);}
       }
     } catch (error) {console.log(error);}
@@ -71,7 +69,6 @@ app.post('/categories', async (req, res) => {
 
 
 app.get('/games', async (req, res) => {
-  console.log('>>query :', req.query);
   if (req.query.name === undefined) {
     try {
       const gamesPromise = await connection.query(`
@@ -81,7 +78,6 @@ app.get('/games', async (req, res) => {
       FROM games
       JOIN categories
         ON games."categoryId" = categories.id;`);
-      console.log(gamesPromise);
       res.status(200).send(gamesPromise.rows);
     } catch (error) {
       console.log('erro na SELECT query', error);
@@ -104,7 +100,6 @@ app.get('/games', async (req, res) => {
         JOIN categories
           ON games."categoryId" = categories.id
         WHERE games.name iLIKE $1;`, [searchName]);
-        console.log(searchPromise);
         res.status(200).send(searchPromise.rows);
       }
       catch (error) {
@@ -158,12 +153,9 @@ app.post('/games', async (req, res) => {
 
 
 app.get('/customers', async (req, res) => {
-  console.log('>>query :', req.query);
-  
   if (req.query.cpf === undefined) {
     try {
       const customersPromise = await connection.query('SELECT * FROM customers;');
-      console.log(customersPromise.rows);
       customersPromise.rows = customersPromise.rows.map(customer => ({
         ...customer,
         birthday: new Date(customer.birthday).toLocaleDateString('pt-Br')}));
@@ -171,12 +163,10 @@ app.get('/customers', async (req, res) => {
     } catch (error) {console.log(error);}
   }
   else {
-    console.log(req.query.cpf);
     const searchCPF = req.query.cpf + "%";
     try {
       const searchCPFPromise = await connection.query(`
         SELECT * FROM customers WHERE customers.cpf iLIKE $1;`, [searchCPF]);
-        console.log(searchCPFPromise.rows);
         searchCPFPromise.rows = searchCPFPromise.rows.map(customer => ({
           ...customer,
           birthday: new Date(customer.birthday).toLocaleDateString('pt-Br')}));
@@ -203,6 +193,14 @@ app.get('/customers/:id', async (req, res) => {
   }
   catch(error) {console.log(error);}
 });
+
+app.post('/customers', async (req, res) => {
+  const newCustomer = req.body;
+  //console.log('--->>>', newCustomer);
+  //const joiResult = 
+
+  res.sendStatus(501)
+;});
 
 
 
